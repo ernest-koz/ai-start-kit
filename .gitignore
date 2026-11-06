@@ -1,0 +1,7 @@
+node_modules/
+output/video/reel/
+output/video/src/
+.env
+*.wav
+*.mp4
+*.mov
