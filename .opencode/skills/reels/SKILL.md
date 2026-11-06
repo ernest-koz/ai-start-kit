@@ -47,6 +47,8 @@ ffmpeg -y -i ВХОД.mp4 -vf "fps=30,scale=1080:1920:force_original_aspect_rati
 
 ## Шаг 3. Каркас проекта
 
+Из корня репозитория:
+
 ```sh
 mkdir -p output/video
 cd output/video
