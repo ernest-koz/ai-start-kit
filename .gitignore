@@ -1,7 +1,10 @@
 node_modules/
-output/video/reel/
-output/video/src/
 .env
 *.wav
 *.mp4
 *.mov
+
+# результаты учеников не попадают в git, структура папок хранится через .gitkeep
+output/**
+!output/**/
+!output/**/.gitkeep

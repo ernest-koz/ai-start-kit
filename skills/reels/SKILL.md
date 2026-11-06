@@ -14,6 +14,9 @@ description: Сборка вертикального рилса из готов�
 - Node.js 20+ (`node -v` проверить; если нет - скачать с nodejs.org LTS).
 - ffmpeg в PATH (для конверта исходников; сам Remotion тащит свой).
 - Клипы-источник: телефонные записи или скрин-записи от ученика.
+- Для субтитров агент поставит whisper.cpp сам (пакет `@remotion/install-whisper-cpp`):
+  на Windows качается готовый бинарник, на macOS/Linux собирается из исходников
+  (нужны git и компилятор). Никаких CLI-команд для whisper нет - только скрипт из шага 4.
 
 ## Шаг 1. Конверт исходников (обязательно)
 
@@ -40,33 +43,83 @@ ffmpeg -y -i ВХОД.mp4 -vf "fps=30,scale=1080:1920:force_original_aspect_rati
 ## Шаг 3. Каркас проекта
 
 ```sh
-npx create-video@latest output/video/reel --blank
-cd output/video/reel
-npm i @remotion/captions @remotion/install-whisper-cpp
+mkdir -p output/video
+cd output/video
+npx create-video@latest --yes --blank reel
+cd reel
+npm i @remotion/captions @remotion/install-whisper-cpp @remotion/timing
+mkdir -p public
+cp ../src/*.mp4 public/
 ```
 
-Структура композиции (правь таймлайн, не компоненты):
+Blank-шаблон (template-empty) выглядит так:
 
 ```
-src/Root.tsx      - регистрация композиции: <Composition fps={30} width={1080} height={1920}>
-src/Reel.tsx      - Sequence-блоки по шотлисту: <Sequence from={0} durationInFrames={...}>
+src/Root.tsx        - обёртка: <MyComposition /> (не трогай)
+src/Composition.tsx - регистрация: <Composition id="MyComp" ...> - поменяй id
+                      на "Reel", fps={30}, width={1080}, height={1920}
+                      и component={Reel} из src/Reel.tsx
+src/Reel.tsx        - твой таймлайн: <Sequence from={0} durationInFrames={...}>
 ```
 
-Каждый шот - `<Sequence>` с `<OffthreadVideo src="...">` конвертированного
-клипа. Субтитры - `<Series>` из слов. Эндкард - последний Sequence.
+Каждый шот - `<Sequence>` с `<OffthreadVideo src={staticFile('клип.mp4')}>`
+(`staticFile` импортируется из 'remotion', файл лежит в `public/`). Локальные
+медиа Remotion отдаёт только из `public/` - поэтому клипы туда и копируются.
+Субтитры - `<Series>` из слов (`@remotion/timing`). Эндкард - последний
+Sequence.
 
 ## Шаг 4. Субтитры по речи
 
 Речь в рилсе субтитруется всегда: большинство смотрит в муте.
 
+Whisper в Remotion - программный API (`@remotion/install-whisper-cpp`,
+пакет стоит с шага 3), CLI-команд `remotion transcribe` / `remotion
+install-whisper-cpp` не существует. Аудио под whisper - строго 16 бит,
+16 kHz, mono:
+
 ```sh
-npx remotion install-whisper-cpp        # один раз
-npx remotion transcribe input.wav --model base
+ffmpeg -y -i output/video/src/клип.mp4 -vn -ac 1 -ar 16000 -acodec pcm_s16le output/video/src/клип.wav
 ```
 
-(Аудио вытащи из клипов: `ffmpeg -i клип.mp4 -vn audio.wav`.)
-Полученные слова превращай в `{text, startMs, endMs}` и рендери по 1-3 слова
-на экране, крупно, в безопасной зоне (выше нижних 250px - там кнопки соцсетей).
+Скрипт `output/video/reel/transcribe.mjs`. Все команды шага 4 - из корня
+репозитория (после шага 3 ты в `output/video/reel`, вернись: `cd ../../..`):
+
+```js
+import fs from 'node:fs';
+import path from 'node:path';
+import {
+  installWhisperCpp,
+  downloadWhisperModel,
+  transcribe,
+  toCaptions,
+} from '@remotion/install-whisper-cpp';
+
+const to = path.join(process.cwd(), 'output/video/reel/whisper.cpp');
+const inputPath = process.argv[2];
+
+await installWhisperCpp({to, version: '1.5.5', printOutput: false}); // Windows: скачает готовый бинарник
+fs.mkdirSync(path.join(to, 'models'), {recursive: true}); // downloadWhisperModel папку не создаёт
+await downloadWhisperModel({model: 'base', folder: path.join(to, 'models'), printOutput: false}); // 'base' - мультиязычная, для русского
+
+const {transcription} = await transcribe({
+  inputPath,
+  whisperPath: to,
+  whisperCppVersion: '1.5.5',
+  model: 'base',
+  tokenLevelTimestamps: true,
+  printOutput: false, // иначе прогресс замусорит JSON в stdout
+});
+
+const {captions} = toCaptions({whisperCppOutput: transcription});
+console.log(JSON.stringify(captions.map((c) => ({text: c.text.trim(), startMs: c.startMs, endMs: c.endMs}))));
+```
+
+```sh
+node output/video/reel/transcribe.mjs output/video/src/клип.wav > output/video/src/клип.json
+```
+
+Полученные слова `{text, startMs, endMs}` рендери по 1-3 слова на экране,
+крупно, в безопасной зоне (выше нижних 250px - там кнопки соцсетей).
 
 ## Шаг 5. Музыка
 
@@ -76,11 +129,14 @@ npx remotion transcribe input.wav --model base
 
 ## Шаг 6. Рендер
 
+Из папки проекта (`cd output/video/reel`, если после шага 4 ты в корне):
+
 ```sh
 npx remotion render Reel out/reel.mp4 --codec h264
 ```
 
-Первый рендер долгий (whisper + компиляция) - это нормально.
+Первый рендер долгий (компиляция бандла + скачивание браузера) - это
+нормально. Whisper считается на шаге 4, при рендере он не запускается.
 
 ## Шаг 7. Проверка перед сдачей
 
