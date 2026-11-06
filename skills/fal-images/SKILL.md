@@ -69,9 +69,10 @@ curl -s -X POST https://fal.run/fal-ai/flux/dev \
   -d '{"prompt": "ENGLISH_PROMPT", "image_size": {"width": 1080, "height": 1350}, "num_inference_steps": 28, "output_format": "png"}'
 ```
 
-Форматы `image_size`: `square_hd` (аватар), `landscape_16_9`, `portrait_16_9`
-(сторис/рилс), `landscape_4_3`, `portrait_4_3`. Пресета 4:5 в enum нет -
-для ленты передавай объект `{"width": 1080, "height": 1350}`, как в примерах.
+Форматы `image_size`: `square_hd` (аватар), `square`, `landscape_16_9`,
+`portrait_16_9` (сторис/рилс), `landscape_4_3`, `portrait_4_3`. Пресета 4:5
+в enum нет - для ленты передавай объект `{"width": 1080, "height": 1350}`,
+как в примерах.
 
 Несколько вариантов за один вызов дешевле нескольких запросов: добавь
 `"num_images": 3` - в ответе придёт `images[0..2]`, все скачай и покажи.

@@ -11,8 +11,8 @@ description: Сборка вертикального рилса из готов�
 
 ## Предпосылки
 
-- Node.js: свежий LTS с nodejs.org (22; минимум 20.19+ - на более старых
-  blank-шаблон молча откатывается на медленный webpack).
+- Node.js: свежий LTS с nodejs.org (22; для 20.x минимум 20.19, для 22.x -
+  22.12+ - на более старых сборка молча откатывается на медленный webpack).
 - ffmpeg в PATH (для конверта исходников; сам Remotion тащит свой).
 - Клипы-источник: телефонные записи или скрин-записи от ученика.
 - Для субтитров агент поставит whisper.cpp сам (пакет `@remotion/install-whisper-cpp`):
@@ -57,6 +57,9 @@ mkdir -p public
 cp ../src/*.mp4 public/
 ```
 
+Лицензия: Remotion бесплатен для команды до 3 человек, дальше - платная
+лицензия remotion.pro. Ученику с личным проектом этого достаточно.
+
 Blank-шаблон (template-empty) выглядит так:
 
 ```
@@ -90,7 +93,6 @@ ffmpeg -y -i output/video/src/клип.mp4 -vn -ac 1 -ar 16000 -acodec pcm_s16le
 репозитория (после шага 3 ты в `output/video/reel`, вернись: `cd ../../..`):
 
 ```js
-import fs from 'node:fs';
 import path from 'node:path';
 import {
   installWhisperCpp,
@@ -103,12 +105,12 @@ const to = path.join(process.cwd(), 'output/video/reel/whisper.cpp');
 const inputPath = process.argv[2];
 
 await installWhisperCpp({to, version: '1.5.5', printOutput: false}); // Windows: скачает готовый бинарник
-fs.mkdirSync(path.join(to, 'models'), {recursive: true}); // downloadWhisperModel папку не создаёт
-await downloadWhisperModel({model: 'base', folder: path.join(to, 'models'), printOutput: false}); // 'base' - мультиязычная, для русского
+await downloadWhisperModel({model: 'base', folder: to, printOutput: false}); // 'base' - мультиязычная, для русского
 
 const {transcription} = await transcribe({
   inputPath,
   whisperPath: to,
+  modelFolder: to, // модель в корне whisper.cpp - не полагайся на дефолт transcribe()
   whisperCppVersion: '1.5.5',
   model: 'base',
   tokenLevelTimestamps: true,
