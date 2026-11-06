@@ -47,7 +47,7 @@ ffmpeg -y -i ВХОД.mp4 -vf "fps=30,scale=1080:1920:force_original_aspect_rati
 
 ## Шаг 3. Каркас проекта
 
-Из корня репозитория:
+Из корня проекта:
 
 ```sh
 mkdir -p output/video
@@ -92,7 +92,7 @@ ffmpeg -y -i output/video/src/клип.mp4 -vn -ac 1 -ar 16000 -acodec pcm_s16le
 ```
 
 Скрипт `output/video/reel/transcribe.mjs`. Все команды шага 4 - из корня
-репозитория (после шага 3 ты в `output/video/reel`, вернись: `cd ../../..`):
+проекта (после шага 3 ты в `output/video/reel`, вернись: `cd ../../..`):
 
 ```js
 import path from 'node:path';
@@ -138,7 +138,7 @@ node output/video/reel/transcribe.mjs output/video/src/клип.wav > output/vid
 записываем: либо тишина, либо тихая подложка без вокала (не перебивает хук),
 начинается с первого кадра. Склейки шотов - по битам: подгони `from` шотов под
 сетку трека. Музыку даёт ученик (свой файл или лицензионный источник), в
-репозиторий не складывай.
+проект не складывай.
 
 ## Шаг 6. Рендер
 
