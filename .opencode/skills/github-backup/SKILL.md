@@ -22,7 +22,7 @@ description: Страховка ученика: бэкап рабочего ка
 
 ## Шаг 2. Репозиторий (один раз)
 
-Если remote `.backup` уже настроен - сразу шаг 3.
+Если remote `backup` уже настроен - сразу шаг 3.
 
 1. Узнай логин ученика: `curl -s https://api.github.com/user -H "Authorization: Bearer $GITHUB_TOKEN"` - поле `login`.
 2. Имя репозитория: если ученик не назвал - один вопрос, по умолчанию
@@ -32,7 +32,7 @@ description: Страховка ученика: бэкап рабочего ка
    `curl -X POST https://api.github.com/user/repos -H "Authorization: Bearer $GITHUB_TOKEN" -d '{"name":"<имя>","private":true}'`
 4. Подключи remote (токен останется в `.git/config` локально, на машине
    ученика - там же, где `.env`; наружу его не показывай):
-   `git remote add .backup https://<GITHUB_TOKEN>@github.com/<login>/<имя>.git`
+   `git remote add backup https://<GITHUB_TOKEN>@github.com/<login>/<имя>.git`
 
 Создание репозитория и первый пуш показывай ученику заранее: что уходит,
 куда уходит.
@@ -58,7 +58,7 @@ git init                                    # если репо в катало�
 git branch -M main
 git add -A
 git commit -m "бэкап <дата>"
-git push .backup main
+git push backup main
 ```
 
 Ошибки пуша могут вывести remote URL вместе с токеном: показывая ошибку
